@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="container mt-4">
+  <!-- Navigation -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="/">📁 Data Manager</a>
+      <div class="collapse navbar-collapse">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item"><a class="btn btn-light me-2" href="/">Data Entry</a></li>
+          <li class="nav-item"><a class="btn btn-light me-2" href="/filter">Filter Records</a></li>
+          <li class="nav-item"><a class="btn btn-light me-2" href="/dashboard">Dashboard</a></li>
+          <li class="nav-item"><a class="btn btn-light me-2" href="/all">View All</a></li>
+          <li class="nav-item"><a class="btn btn-light me-2" href="/download-template">Download Template</a></li>
+          <li class="nav-item"><a class="btn btn-light me-2" href="/export-excel">Export Excel</a></li>
+          <li class="nav-item"><a class="btn btn-light" href="/export-pdf">Export PDF</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <h2>Dashboard</h2>
+  <canvas id="cityChart" width="400" height="200"></canvas>
+
+  <hr>
+  <h4>Add New Column</h4>
+  <form action="/add-column" method="POST">
+    <input name="columnName" class="form-control" placeholder="New Column Name" required>
+    <button type="submit" class="btn btn-warning mt-2">Add Column</button>
+  </form>
+
+  <script>
+    fetch('/api/stats')
+      .then(res => res.json())
+      .then(data => {
+        const ctx = document.getElementById('cityChart').getContext('2d');
+        new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: data.map(d => d.city),
+            datasets: [{
+              label: 'Total Qty by City',
+              data: data.map(d => d.totalQty),
+              backgroundColor: 'rgba(54, 162, 235, 0.6)',
+              borderColor: 'rgba(54, 162, 235, 1)',
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            scales: {
+              y: {
+                beginAtZero: true,
+                title: {
+                  display: true,
+                  text: 'Quantity'
+                }
+              },
+              x: {
+                title: {
+                  display: true,
+                  text: 'City'
+                }
+              }
+            }
+          }
+        });
+      });
+  </script>
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>All Records</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+<body class="container mt-4">
+  <!-- Navigation Bar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="/">📁 Data Manager</a>
+      <div class="collapse navbar-collapse">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item"><a class="btn btn-light me-2" href="/">Data Entry</a></li>
+          <li class="nav-item"><a class="btn btn-light me-2" href="/filter">Filter Records</a></li>
+          <li class="nav-item"><a class="btn btn-light me-2" href="/dashboard">Dashboard</a></li>
+          <li class="nav-item"><a class="btn btn-light me-2" href="/download-template">Download Template</a></li>
+          <li class="nav-item"><a class="btn btn-light me-2" href="/export-excel">Export Excel</a></li>
+          <li class="nav-item"><a class="btn btn-light" href="/export-pdf">Export PDF</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <h2>All Records</h2>
+  <table class="table table-bordered" id="recordsTable"></table>
+
+  <!-- Edit Modal -->
+  <div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog">
+      <form class="modal-content" id="editForm">
+        <div class="modal-header">
+          <h5 class="modal-title">Edit Record</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" name="id" id="editId">
+          <input class="form-control mb-2" name="customerName" id="editCustomerName" placeholder="Customer Name" required>
+          <input class="form-control mb-2" name="address" id="editAddress" placeholder="Address" required>
+          <input class="form-control mb-2" name="city" id="editCity" placeholder="City" required>
+          <input class="form-control mb-2" name="productName" id="editProductName" placeholder="Product Name" required>
+          <input class="form-control mb-2" name="modelNo" id="editModelNo" placeholder="Model No" required>
+          <input class="form-control mb-2" name="kw" id="editKW" type="number" step="0.1" placeholder="KW" required>
+          <input class="form-control mb-2" name="tankVolume" id="editTankVolume" type="number" step="0.1" placeholder="Tank Volume" required>
+          <input class="form-control mb-2" name="qty" id="editQty" type="number" placeholder="Qty" required>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-success">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Load all records
+    fetch('/api/all')
+      .then(res => res.json())
+      .then(data => {
+        const table = document.getElementById('recordsTable');
+        if (data.length === 0) {
+          table.innerHTML = '<tr><td>No records found</td></tr>';
+          return;
+        }
+
+        const headers = Object.keys(data[0]);
+        const headerRow = document.createElement('tr');
+        headers.forEach(h => {
+          const th = document.createElement('th');
+          th.textContent = h;
+          headerRow.appendChild(th);
+        });
+        headerRow.appendChild(document.createElement('th')).textContent = 'Actions';
+        table.appendChild(headerRow);
+
+        data.forEach(row => {
+          const tr = document.createElement('tr');
+          headers.forEach(h => {
+            const td = document.createElement('td');
+            td.textContent = row[h];
+            tr.appendChild(td);
+          });
+
+          const actionTd = document.createElement('td');
+          actionTd.innerHTML = `
+            <button class="btn btn-sm btn-success me-1" onclick='openEdit(${JSON.stringify(row)})'>Edit</button>
+            <form method="POST" action="/delete/${row.id}" style="display:inline">
+              <button class="btn btn-sm btn-danger" onclick="return confirm('Delete this record?')">Delete</button>
+            </form>
+          `;
+          tr.appendChild(actionTd);
+          table.appendChild(tr);
+        });
+      });
+
+    // Open edit modal
+    function openEdit(row) {
+      document.getElementById('editId').value = row.id;
+      document.getElementById('editCustomerName').value = row.customerName;
+      document.getElementById('editAddress').value = row.address;
+      document.getElementById('editCity').value = row.city;
+      document.getElementById('editProductName').value = row.productName;
+      document.getElementById('editModelNo').value = row.modelNo;
+      document.getElementById('editKW').value = row.kw;
+      document.getElementById('editTankVolume').value = row.tankVolume;
+      document.getElementById('editQty').value = row.qty;
+      new bootstrap.Modal(document.getElementById('editModal')).show();
+    }
+
+    // Submit edit form
+    document.getElementById('editForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const id = document.getElementById('editId').value;
+      const formData = new FormData(this);
+      fetch(`/edit/${id}`, {
+        method: 'POST',
+        body: new URLSearchParams(formData)
+      }).then(() => location.reload());
+    });
+  </script>
+</body>
+</html>
