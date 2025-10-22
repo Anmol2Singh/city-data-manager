@@ -3,32 +3,30 @@
 <head>
   <title>All Records</title>
   <link rel="stylesheet" href="/styles.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
 </head>
 <body class="container mt-4">
   <!-- Navigation Bar -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-  <div class="container-fluid">
-    <a class="navbar-brand" href="/">Data Manager</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav ms-auto">
-        <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
-        <li class="nav-item"><a class="nav-link" href="/filter">Filter</a></li>
-        <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
-        <li class="nav-item"><a class="nav-link" href="/all">All Records</a></li>
-        <li class="nav-item"><a class="btn btn-light me-2" href="/download-template">Download Template</a></li>
-        <li class="nav-item"><a class="btn btn-light me-2" href="/export-excel">Export Excel</a></li>
-        <li class="nav-item"><a class="btn btn-light" href="/export-pdf">Export PDF</a></li>
-      </ul>
+    <div class="container-fluid">
+      <a class="navbar-brand" href="/">Data Manager</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+          <li class="nav-item"><a class="nav-link" href="/filter">Filter</a></li>
+          <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
+          <li class="nav-item"><a class="nav-link" href="/all">All Records</a></li>
+          <li class="nav-item"><a class="btn btn-light me-2" href="/download-template">Download Template</a></li>
+          <li class="nav-item"><a class="btn btn-light me-2" href="/export-excel">Export Excel</a></li>
+          <li class="nav-item"><a class="btn btn-light" href="/export-pdf">Export PDF</a></li>
+        </ul>
+      </div>
     </div>
-  </div>
-</nav>
+  </nav>
 
   <h2>All Records</h2>
   <table class="table table-bordered" id="recordsTable"></table>
@@ -43,13 +41,13 @@
         </div>
         <div class="modal-body">
           <input type="hidden" name="id" id="editId">
-          <input class="form-control mb-2" name="customerName" id="editCustomerName" placeholder="Customer Name" required>
+          <input class="form-control mb-2" name="customername" id="editCustomerName" placeholder="Customer Name" required>
           <input class="form-control mb-2" name="address" id="editAddress" placeholder="Address" required>
           <input class="form-control mb-2" name="city" id="editCity" placeholder="City" required>
-          <input class="form-control mb-2" name="productName" id="editProductName" placeholder="Product Name" required>
-          <input class="form-control mb-2" name="modelNo" id="editModelNo" placeholder="Model No" required>
+          <input class="form-control mb-2" name="productname" id="editProductName" placeholder="Product Name" required>
+          <input class="form-control mb-2" name="modelno" id="editModelNo" placeholder="Model No" required>
           <input class="form-control mb-2" name="kw" id="editKW" type="number" step="0.1" placeholder="KW" required>
-          <input class="form-control mb-2" name="tankVolume" id="editTankVolume" type="number" step="0.1" placeholder="Tank Volume" required>
+          <input class="form-control mb-2" name="tankvolume" id="editTankVolume" type="number" step="0.1" placeholder="Tank Volume" required>
           <input class="form-control mb-2" name="qty" id="editQty" type="number" placeholder="Qty" required>
         </div>
         <div class="modal-footer">
@@ -92,7 +90,7 @@
           actionTd.innerHTML = `
             <button class="btn btn-sm btn-success me-1" onclick='openEdit(${JSON.stringify(row)})'>Edit</button>
             <form method="POST" action="/delete/${row.id}" style="display:inline">
-              <button class="btn btn-sm btn-danger" onclick="return confirm('Delete this record?')">Delete</button>
+              <button class="btn btn-sm btn-danger" onclick="return confirm("Delete this record?")'>Delete</button>
             </form>
           `;
           tr.appendChild(actionTd);
@@ -102,28 +100,52 @@
 
     // Open edit modal
     function openEdit(row) {
-      document.getElementById('editId').value = row.id;
-      document.getElementById('editCustomerName').value = row.customerName;
-      document.getElementById('editAddress').value = row.address;
-      document.getElementById('editCity').value = row.city;
-      document.getElementById('editProductName').value = row.productName;
-      document.getElementById('editModelNo').value = row.modelNo;
-      document.getElementById('editKW').value = row.kw;
-      document.getElementById('editTankVolume').value = row.tankVolume;
-      document.getElementById('editQty').value = row.qty;
+      // Helper function to handle undefined/null values
+      const getValue = (value) => value === undefined || value === null ? '' : value;
+      
+      document.getElementById('editId').value = getValue(row.id);
+      document.getElementById('editCustomerName').value = getValue(row.customername);
+      document.getElementById('editAddress').value = getValue(row.address);
+      document.getElementById('editCity').value = getValue(row.city);
+      document.getElementById('editProductName').value = getValue(row.productname);
+      document.getElementById('editModelNo').value = getValue(row.modelno);
+      document.getElementById('editKW').value = getValue(row.kw);
+      document.getElementById('editTankVolume').value = getValue(row.tankvolume);
+      document.getElementById('editQty').value = getValue(row.qty);
       new bootstrap.Modal(document.getElementById('editModal')).show();
     }
 
+
     // Submit edit form
     document.getElementById('editForm').addEventListener('submit', function(e) {
-      e.preventDefault();
-      const id = document.getElementById('editId').value;
-      const formData = new FormData(this);
-      fetch(`/edit/${id}`, {
-        method: 'POST',
-        body: new URLSearchParams(formData)
-      }).then(() => location.reload());
+    e.preventDefault();
+    const formData = new FormData(this);
+    
+    // Validate required fields
+    for (let pair of formData.entries()) {
+      if (!pair[1] && pair[0] !== 'id') {
+        alert('Please fill in all required fields');
+        return;
+      }
+    }
+    
+    const id = document.getElementById('editId').value;
+    fetch(`/edit/${id}`, {
+      method: 'POST',
+      body: new URLSearchParams(formData)
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response;
+    })
+    .then(() => location.reload())
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Failed to update record. Please try again.');
     });
+  });
   </script>
 </body>
 </html>
