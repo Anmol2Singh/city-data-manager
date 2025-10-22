@@ -41,13 +41,13 @@
         </div>
         <div class="modal-body">
           <input type="hidden" name="id" id="editId">
-          <input class="form-control mb-2" name="customername" id="editCustomerName" placeholder="Customer Name" required>
+          <input class="form-control mb-2" name="customerName" id="editCustomerName" placeholder="Customer Name" required>
           <input class="form-control mb-2" name="address" id="editAddress" placeholder="Address" required>
           <input class="form-control mb-2" name="city" id="editCity" placeholder="City" required>
-          <input class="form-control mb-2" name="productname" id="editProductName" placeholder="Product Name" required>
-          <input class="form-control mb-2" name="modelno" id="editModelNo" placeholder="Model No" required>
+          <input class="form-control mb-2" name="productName" id="editProductName" placeholder="Product Name" required>
+          <input class="form-control mb-2" name="modelNo" id="editModelNo" placeholder="Model No" required>
           <input class="form-control mb-2" name="kw" id="editKW" type="number" step="0.1" placeholder="KW" required>
-          <input class="form-control mb-2" name="tankvolume" id="editTankVolume" type="number" step="0.1" placeholder="Tank Volume" required>
+          <input class="form-control mb-2" name="tankVolume" id="editTankVolume" type="number" step="0.1" placeholder="Tank Volume" required>
           <input class="form-control mb-2" name="qty" id="editQty" type="number" placeholder="Qty" required>
         </div>
         <div class="modal-footer">
@@ -104,13 +104,13 @@
       const getValue = (value) => value === undefined || value === null ? '' : value;
       
       document.getElementById('editId').value = getValue(row.id);
-      document.getElementById('editCustomerName').value = getValue(row.customername);
+      document.getElementById('editCustomerName').value = getValue(row.customerName);
       document.getElementById('editAddress').value = getValue(row.address);
       document.getElementById('editCity').value = getValue(row.city);
-      document.getElementById('editProductName').value = getValue(row.productname);
-      document.getElementById('editModelNo').value = getValue(row.modelno);
+      document.getElementById('editProductName').value = getValue(row.productName);
+      document.getElementById('editModelNo').value = getValue(row.modelNo);
       document.getElementById('editKW').value = getValue(row.kw);
-      document.getElementById('editTankVolume').value = getValue(row.tankvolume);
+      document.getElementById('editTankVolume').value = getValue(row.tankVolume);
       document.getElementById('editQty').value = getValue(row.qty);
       new bootstrap.Modal(document.getElementById('editModal')).show();
     }
