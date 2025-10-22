@@ -1,3 +1,16 @@
-"scripts": {
-  "start": "node server.js"
+{
+  "name": "city-data-manager",
+  "version": "1.0.0",
+  "description": "City-wise data manager with PostgreSQL and PDF export",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "pg": "^8.11.1",
+    "multer": "^1.4.5",
+    "xlsx": "^0.18.5",
+    "pdfkit": "^0.13.0"
+  }
 }
