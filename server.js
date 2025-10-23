@@ -178,13 +178,13 @@ app.get('/export-pdf', async (req, res) => {
   rows.forEach((row, index) => {
     const values = [
       index + 1,
-      row.customername,
+      row.customerName,
       row.address,
       row.city,
-      row.productname,
-      row.modelno,
+      row.productName,
+      row.modelNo,
       row.kw,
-      row.tankvolume,
+      row.tankVolume,
       row.qty
     ];
 
