@@ -151,19 +151,32 @@
           try {
             const data = await response.json();
             console.log('✅ Login successful:', data);
+            
+            // Fetch user info to determine redirect
+            const userInfoResponse = await fetch('/api/user-info', { credentials: 'include' });
+            const userInfo = await userInfoResponse.json();
+            console.log('User info:', userInfo);
+            
+            // Redirect based on role
+            let redirectUrl = '/home';
+            if (userInfo.role === 'Admin') {
+              redirectUrl = '/admin-dashboard';
+              console.log('🔄 Admin detected, redirecting to admin dashboard...');
+            } else {
+              console.log('🔄 Regular user detected, redirecting to home page...');
+            }
+            
+            window.location.href = redirectUrl;
+            
+            // Fallback redirect after 1 second
+            setTimeout(() => {
+              console.log('🔄 Fallback redirect to ' + redirectUrl);
+              window.location.href = redirectUrl;
+            }, 1000);
           } catch (e) {
             console.log('Response received but not JSON');
-          }
-          
-          // Redirect immediately
-          console.log('🔄 Redirecting to home page NOW...');
-          window.location.href = '/home';
-          
-          // Fallback redirect after 1 second
-          setTimeout(() => {
-            console.log('🔄 Fallback redirect...');
             window.location.href = '/home';
-          }, 1000);
+          }
         } else {
           const text = await response.text();
           console.log('❌ Login failed:', text);
