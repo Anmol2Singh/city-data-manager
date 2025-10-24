@@ -148,14 +148,22 @@
         console.log('Response ok:', response.ok);
 
         if (response.ok) {
-          const data = await response.json();
-          console.log('✅ Login successful:', data);
+          try {
+            const data = await response.json();
+            console.log('✅ Login successful:', data);
+          } catch (e) {
+            console.log('Response received but not JSON');
+          }
           
-          // Wait a moment for session to be fully established
+          // Redirect immediately
+          console.log('🔄 Redirecting to home page NOW...');
+          window.location.href = '/';
+          
+          // Fallback redirect after 1 second
           setTimeout(() => {
-            console.log('🔄 Redirecting to home page...');
+            console.log('🔄 Fallback redirect...');
             window.location.href = '/';
-          }, 500);
+          }, 1000);
         } else {
           const text = await response.text();
           console.log('❌ Login failed:', text);
