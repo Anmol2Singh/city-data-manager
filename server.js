@@ -48,7 +48,8 @@ app.use(session({
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     secure: process.env.NODE_ENV === 'production', // HTTPS only in production
     httpOnly: true,
-    sameSite: 'lax'
+    sameSite: 'none',  // Changed from 'lax' to 'none' for cross-site
+    domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined
   }
 }));
 
