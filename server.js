@@ -167,7 +167,15 @@ app.post('/login', async (req, res) => {
     req.session.userId = user.id;
     req.session.username = user.username;
     req.session.role = user.role;
-    res.redirect('/');
+    
+    // Save session before responding
+    req.session.save((err) => {
+      if (err) {
+        console.error('Session save error:', err);
+        return res.status(500).send('Server error');
+      }
+      res.status(200).json({ success: true });
+    });
   } catch (err) {
     console.error(err);
     res.status(500).send('Server error');
