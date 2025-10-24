@@ -128,27 +128,48 @@
       const username = document.getElementById('username').value;
       const password = document.getElementById('password').value;
       const errorAlert = document.getElementById('errorAlert');
+      const loginBtn = e.target.querySelector('button[type="submit"]');
 
       try {
+        console.log('🔐 Attempting login for:', username);
+        loginBtn.disabled = true;
+        loginBtn.textContent = 'Logging in...';
+        
         const response = await fetch('/login', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
           },
-          body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
+          body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`,
+          credentials: 'include'
         });
 
+        console.log('Response status:', response.status);
+        console.log('Response ok:', response.ok);
+
         if (response.ok) {
-          window.location.href = '/';
+          const data = await response.json();
+          console.log('✅ Login successful:', data);
+          
+          // Wait a moment for session to be fully established
+          setTimeout(() => {
+            console.log('🔄 Redirecting to home page...');
+            window.location.href = '/';
+          }, 500);
         } else {
           const text = await response.text();
+          console.log('❌ Login failed:', text);
           errorAlert.textContent = text || 'Invalid credentials';
           errorAlert.style.display = 'block';
+          loginBtn.disabled = false;
+          loginBtn.textContent = 'Login';
         }
       } catch (error) {
-        console.error('Error:', error);
+        console.error('❌ Error:', error);
         errorAlert.textContent = 'An error occurred. Please try again.';
         errorAlert.style.display = 'block';
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Login';
       }
     });
   </script>
