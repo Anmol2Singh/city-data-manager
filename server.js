@@ -11,6 +11,33 @@ const pgSession = require('connect-pg-simple')(session);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Simple in-memory session store for fallback
+class SimpleMemoryStore extends session.Store {
+  constructor() {
+    super();
+    this.sessions = {};
+  }
+
+  get(sid, callback) {
+    const sess = this.sessions[sid];
+    if (sess) {
+      callback(null, sess);
+    } else {
+      callback(null, null);
+    }
+  }
+
+  set(sid, sess, callback) {
+    this.sessions[sid] = sess;
+    if (callback) callback(null);
+  }
+
+  destroy(sid, callback) {
+    delete this.sessions[sid];
+    if (callback) callback(null);
+  }
+}
+
 // PostgreSQL setup
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -34,13 +61,9 @@ app.use(express.static('public'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Session middleware
+// Session middleware - use memory store for reliability
 app.use(session({
-  store: new pgSession({
-    pool: pool,
-    tableName: 'session',
-    createTableIfMissing: true
-  }),
+  store: new SimpleMemoryStore(),
   secret: process.env.SESSION_SECRET || 'change-this-secret-in-production',
   resave: false,
   saveUninitialized: true,
@@ -48,7 +71,7 @@ app.use(session({
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     secure: process.env.NODE_ENV === 'production', // HTTPS only in production
     httpOnly: true,
-    sameSite: 'none',  // Changed from 'lax' to 'none' for cross-site
+    sameSite: 'none',  // Allow cross-site
     domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined
   }
 }));
