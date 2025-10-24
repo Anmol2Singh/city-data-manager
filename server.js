@@ -126,8 +126,10 @@ setTimeout(ensureAdminExists, 1000);
 const isAuthenticated = (req, res, next) => {
   console.log(`🔍 Auth check for ${req.path}`);
   console.log(`   Session ID: ${req.sessionID}`);
+  console.log(`   Session object:`, req.session);
   console.log(`   User ID: ${req.session.userId}`);
   console.log(`   Username: ${req.session.username}`);
+  console.log(`   All cookies:`, req.headers.cookie);
   
   if (req.session.userId) {
     console.log(`✅ Authenticated: ${req.session.username}`);
@@ -192,6 +194,12 @@ app.post('/login', async (req, res) => {
       }
       console.log(`✅ Login successful for user: ${username}`);
       console.log(`📝 Session saved with ID: ${req.sessionID}`);
+      console.log(`📝 Session data:`, {
+        userId: req.session.userId,
+        username: req.session.username,
+        role: req.session.role
+      });
+      console.log(`📝 Session cookie:`, req.session.cookie);
       
       // Send response with proper headers
       res.setHeader('Content-Type', 'application/json');
