@@ -123,9 +123,16 @@ setTimeout(ensureAdminExists, 1000);
 
 // Middleware to check authentication
 const isAuthenticated = (req, res, next) => {
+  console.log(`🔍 Auth check for ${req.path}`);
+  console.log(`   Session ID: ${req.sessionID}`);
+  console.log(`   User ID: ${req.session.userId}`);
+  console.log(`   Username: ${req.session.username}`);
+  
   if (req.session.userId) {
+    console.log(`✅ Authenticated: ${req.session.username}`);
     next();
   } else {
+    console.log(`❌ Not authenticated, redirecting to login`);
     res.redirect('/login');
   }
 };
