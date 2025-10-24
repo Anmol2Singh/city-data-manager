@@ -111,6 +111,7 @@ async function ensureAdminExists() {
       console.log('═══════════════════════════════════════════════════════════');
     } else {
       console.log('✅ Admin user already exists');
+      console.log('Admin user details:', result.rows[0]);
     }
   } catch (err) {
     console.error('Error checking/creating admin user:', err.message);
@@ -152,15 +153,19 @@ app.get('/login', (req, res) => {
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
   try {
+    console.log(`🔐 Login attempt for user: ${username}`);
     const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
     if (result.rows.length === 0) {
+      console.log(`❌ User not found: ${username}`);
       return res.status(401).send('Invalid credentials');
     }
 
     const user = result.rows[0];
+    console.log(`✅ User found: ${username}, Role: ${user.role}`);
     const isValidPassword = await bcrypt.compare(password, user.password);
 
     if (!isValidPassword) {
+      console.log(`❌ Invalid password for user: ${username}`);
       return res.status(401).send('Invalid credentials');
     }
 
@@ -168,16 +173,19 @@ app.post('/login', async (req, res) => {
     req.session.username = user.username;
     req.session.role = user.role;
     
+    console.log(`✅ Session set for user: ${username}, Role: ${user.role}`);
+    
     // Save session before responding
     req.session.save((err) => {
       if (err) {
         console.error('Session save error:', err);
         return res.status(500).send('Server error');
       }
+      console.log(`✅ Login successful for user: ${username}`);
       res.status(200).json({ success: true });
     });
   } catch (err) {
-    console.error(err);
+    console.error('Login error:', err);
     res.status(500).send('Server error');
   }
 });
