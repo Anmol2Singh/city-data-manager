@@ -6,6 +6,8 @@ Welcome to the City Data Manager documentation. This folder contains all guides,
 
 ### Getting Started
 - **[QUICK_START.md](./QUICK_START.md)** - Get up and running in 5 minutes
+- **[CREATE_CREDENTIALS.md](./CREATE_CREDENTIALS.md)** - How to create admin & user credentials
+- **[RENDER_ADMIN_SETUP.md](./RENDER_ADMIN_SETUP.md)** - Admin setup for Render deployment
 - **[RENDER_QUICK_REFERENCE.md](./RENDER_QUICK_REFERENCE.md)** - Quick reference card for Render deployment
 
 ### Authentication & Security
