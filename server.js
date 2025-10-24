@@ -152,9 +152,19 @@ const hasRole = (roles) => {
 };
 
 // Routes
+// Root route - login page (unauthenticated)
+app.get('/', (req, res) => {
+  if (req.session.userId) {
+    res.redirect('/home');
+  } else {
+    res.sendFile(__dirname + '/views/login.html');
+  }
+});
+
+// Kept for backwards compatibility
 app.get('/login', (req, res) => {
   if (req.session.userId) {
-    res.redirect('/');
+    res.redirect('/home');
   } else {
     res.sendFile(__dirname + '/views/login.html');
   }
@@ -203,7 +213,7 @@ app.post('/login', async (req, res) => {
       
       // Send response with proper headers
       res.setHeader('Content-Type', 'application/json');
-      res.status(200).json({ success: true, message: 'Login successful' });
+      res.status(200).json({ success: true, message: 'Login successful', redirect: '/home' });
     });
   } catch (err) {
     console.error('❌ Login error:', err);
@@ -216,7 +226,7 @@ app.get('/logout', (req, res) => {
     if (err) {
       return res.status(500).send('Logout failed');
     }
-    res.redirect('/login');
+    res.redirect('/');
   });
 });
 
@@ -233,7 +243,8 @@ app.get('/admin-dashboard', isAuthenticated, hasRole(['Admin']), (req, res) => {
   res.sendFile(__dirname + '/views/admin-dashboard.html');
 });
 
-app.get('/', isAuthenticated, (req, res) => res.sendFile(__dirname + '/views/index.html'));
+// Home page - authenticated users only
+app.get('/home', isAuthenticated, (req, res) => res.sendFile(__dirname + '/views/index.html'));
 app.get('/filter', isAuthenticated, (req, res) => res.sendFile(__dirname + '/views/filter.html'));
 app.get('/dashboard', isAuthenticated, (req, res) => res.sendFile(__dirname + '/views/dashboard.html'));
 app.get('/all', isAuthenticated, (req, res) => res.sendFile(__dirname + '/views/all.html'));

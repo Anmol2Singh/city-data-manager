@@ -157,12 +157,12 @@
           
           // Redirect immediately
           console.log('🔄 Redirecting to home page NOW...');
-          window.location.href = '/';
+          window.location.href = '/home';
           
           // Fallback redirect after 1 second
           setTimeout(() => {
             console.log('🔄 Fallback redirect...');
-            window.location.href = '/';
+            window.location.href = '/home';
           }, 1000);
         } else {
           const text = await response.text();
