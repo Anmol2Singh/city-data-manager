@@ -157,7 +157,7 @@ app.get('/', (req, res) => {
   if (req.session.userId) {
     res.redirect('/home');
   } else {
-    res.sendFile(__dirname + '/views/login.html');
+    res.sendFile(__dirname + '/views/index.html');
   }
 });
 
@@ -166,7 +166,7 @@ app.get('/login', (req, res) => {
   if (req.session.userId) {
     res.redirect('/home');
   } else {
-    res.sendFile(__dirname + '/views/login.html');
+    res.sendFile(__dirname + '/views/index.html');
   }
 });
 
@@ -244,7 +244,7 @@ app.get('/admin-dashboard', isAuthenticated, hasRole(['Admin']), (req, res) => {
 });
 
 // Home page - authenticated users only
-app.get('/home', isAuthenticated, (req, res) => res.sendFile(__dirname + '/views/index.html'));
+app.get('/home', isAuthenticated, (req, res) => res.sendFile(__dirname + '/views/home.html'));
 app.get('/filter', isAuthenticated, (req, res) => res.sendFile(__dirname + '/views/filter.html'));
 app.get('/dashboard', isAuthenticated, (req, res) => res.sendFile(__dirname + '/views/dashboard.html'));
 app.get('/all', isAuthenticated, (req, res) => res.sendFile(__dirname + '/views/all.html'));
