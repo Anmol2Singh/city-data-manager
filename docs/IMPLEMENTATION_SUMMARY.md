@@ -158,9 +158,10 @@ Request → Check Session → Check Role → Allow/Deny → Response
 CityWiseDataRender/
 ├── server.js                      (Updated - auth & RBAC)
 ├── package.json                   (Updated - new dependencies)
-├── AUTHENTICATION_SETUP.md        (New - detailed guide)
-├── QUICK_START.md                 (New - quick setup)
-├── IMPLEMENTATION_SUMMARY.md      (New - this file)
+├── docs/                          (Documentation folder)
+│   ├── README.md
+│   ├── QUICK_START.md
+│   └── (all other .md files)
 ├── views/
 │   ├── login.html                 (New - login page)
 │   ├── admin-dashboard.html       (New - admin panel)

@@ -1,10 +1,24 @@
 services:
   - type: web
-    name: data-manager-app
+    name: city-data-manager
     env: node
+    region: oregon
+    plan: free
     buildCommand: npm install
     startCommand: npm start
-    plan: free
     envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SESSION_SECRET
+        generateValue: true
       - key: DATABASE_URL
-        value: data.db
+        fromDatabase:
+          name: city-data-db
+          property: connectionString
+
+databases:
+  - name: city-data-db
+    databaseName: city_data_manager
+    user: city_data_user
+    region: oregon
+    plan: free

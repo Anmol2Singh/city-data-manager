@@ -1,0 +1,13 @@
+Files to copy from root to docs/ folder:
+
+1. SYSTEM_ARCHITECTURE.md
+2. DEPLOYMENT_CHECKLIST.md
+3. RENDER_DEPLOYMENT.md
+4. RENDER_CHECKLIST.md
+5. RENDER_CHANGES.md
+6. RENDER_READY.md
+7. RENDER_QUICK_REFERENCE.md
+
+These files are large and will be copied individually.
+
+Status: In progress
