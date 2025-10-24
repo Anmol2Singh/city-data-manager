@@ -100,18 +100,24 @@
 
     // Open edit modal
     function openEdit(row) {
-      // Helper function to handle undefined/null values
-      const getValue = (value) => value === undefined || value === null ? '' : value;
+      // Helper function to handle undefined/null values and case sensitivity
+      const getValue = (obj, keys) => {
+        for (const key of keys) {
+          if (obj[key] !== undefined) return obj[key] === null ? '' : obj[key];
+        }
+        return '';
+      };
       
-      document.getElementById('editId').value = getValue(row.id);
-      document.getElementById('editCustomerName').value = getValue(row.customerName);
-      document.getElementById('editAddress').value = getValue(row.address);
-      document.getElementById('editCity').value = getValue(row.city);
-      document.getElementById('editProductName').value = getValue(row.productName);
-      document.getElementById('editModelNo').value = getValue(row.modelNo);
-      document.getElementById('editKW').value = getValue(row.kw);
-      document.getElementById('editTankVolume').value = getValue(row.tankVolume);
-      document.getElementById('editQty').value = getValue(row.qty);
+      document.getElementById('editId').value = getValue(row, ['id']);
+      document.getElementById('editCustomerName').value = getValue(row, ['customerName', 'customername']);
+      document.getElementById('editAddress').value = getValue(row, ['address']);
+      document.getElementById('editCity').value = getValue(row, ['city']);
+      document.getElementById('editProductName').value = getValue(row, ['productName', 'productname']);
+      document.getElementById('editModelNo').value = getValue(row, ['modelNo', 'modelno']);
+      document.getElementById('editKW').value = getValue(row, ['kw']);
+      document.getElementById('editTankVolume').value = getValue(row, ['tankVolume', 'tankvolume']);
+      document.getElementById('editQty').value = getValue(row, ['qty']);
+      
       new bootstrap.Modal(document.getElementById('editModal')).show();
     }
 
