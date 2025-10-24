@@ -86,6 +86,40 @@ pool.query(`
   )
 `);
 
+// Auto-create admin user on startup (if not exists)
+async function ensureAdminExists() {
+  try {
+    const result = await pool.query("SELECT * FROM users WHERE role = 'Admin'");
+    
+    if (result.rows.length === 0) {
+      console.log('🔄 Creating default admin user...');
+      const hashedPassword = await bcrypt.hash('Admin@123456', 10);
+      
+      await pool.query(
+        'INSERT INTO users (username, password, role) VALUES ($1, $2, $3)',
+        ['admin', hashedPassword, 'Admin']
+      );
+      
+      console.log('✅ Admin user created successfully!');
+      console.log('═══════════════════════════════════════════════════════════');
+      console.log('📝 LOGIN CREDENTIALS:');
+      console.log('═══════════════════════════════════════════════════════════');
+      console.log('Username: admin');
+      console.log('Password: Admin@123456');
+      console.log('═══════════════════════════════════════════════════════════');
+      console.log('⚠️  IMPORTANT: Change this password after first login!');
+      console.log('═══════════════════════════════════════════════════════════');
+    } else {
+      console.log('✅ Admin user already exists');
+    }
+  } catch (err) {
+    console.error('Error checking/creating admin user:', err.message);
+  }
+}
+
+// Call ensureAdminExists after a short delay to ensure tables are created
+setTimeout(ensureAdminExists, 1000);
+
 // Middleware to check authentication
 const isAuthenticated = (req, res, next) => {
   if (req.session.userId) {
