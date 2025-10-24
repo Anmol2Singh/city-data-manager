@@ -43,7 +43,7 @@ app.use(session({
   }),
   secret: process.env.SESSION_SECRET || 'change-this-secret-in-production',
   resave: false,
-  saveUninitialized: false,
+  saveUninitialized: true,
   cookie: { 
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     secure: process.env.NODE_ENV === 'production', // HTTPS only in production
@@ -174,19 +174,24 @@ app.post('/login', async (req, res) => {
     req.session.role = user.role;
     
     console.log(`✅ Session set for user: ${username}, Role: ${user.role}`);
+    console.log(`📝 Session ID: ${req.sessionID}`);
     
     // Save session before responding
     req.session.save((err) => {
       if (err) {
-        console.error('Session save error:', err);
-        return res.status(500).send('Server error');
+        console.error('❌ Session save error:', err);
+        return res.status(500).json({ error: 'Session save failed' });
       }
       console.log(`✅ Login successful for user: ${username}`);
-      res.status(200).json({ success: true });
+      console.log(`📝 Session saved with ID: ${req.sessionID}`);
+      
+      // Send response with proper headers
+      res.setHeader('Content-Type', 'application/json');
+      res.status(200).json({ success: true, message: 'Login successful' });
     });
   } catch (err) {
-    console.error('Login error:', err);
-    res.status(500).send('Server error');
+    console.error('❌ Login error:', err);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
