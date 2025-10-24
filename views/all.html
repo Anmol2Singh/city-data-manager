@@ -8,9 +8,9 @@
 </head>
 <body class="container mt-4">
   <!-- Navigation Bar -->
-  <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+  <nav class="navbar navbar-expand-lg navbar-dark" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
     <div class="container-fluid">
-      <a class="navbar-brand" href="/">Data Manager</a>
+      <a class="navbar-brand" href="/">📊 Data Manager</a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
         <span class="navbar-toggler-icon"></span>
       </button>
@@ -23,6 +23,14 @@
           <li class="nav-item"><a class="nav-link" href="/download-template">Download Template</a></li>
           <li class="nav-item"><a class="nav-link" href="/export-excel">Export Excel</a></li>
           <li class="nav-item"><a class="nav-link" href="/export-pdf">Export PDF</a></li>
+          <li class="nav-item" id="adminMenuLink" style="display: none;"><a class="nav-link" href="/admin-dashboard">👥 Admin</a></li>
+          <li class="nav-item">
+            <div style="color: white; font-size: 14px; margin-right: 20px;">
+              <span id="username"></span>
+              <span id="userRole" style="display: inline-block; background: rgba(255, 255, 255, 0.2); padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600;"></span>
+            </div>
+          </li>
+          <li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>
         </ul>
       </div>
     </div>
@@ -66,6 +74,25 @@
   </div>
 
   <script>
+    let userRole = 'Viewer'; // Default role
+
+    // Load user info
+    fetch('/api/user-info', { credentials: 'include' })
+      .then(res => res.json())
+      .then(data => {
+        if (data.username) {
+          document.getElementById('username').textContent = data.username;
+          document.getElementById('userRole').textContent = data.role;
+          userRole = data.role;
+          
+          // Show admin link if user is admin
+          if (data.role === 'Admin') {
+            document.getElementById('adminMenuLink').style.display = 'block';
+          }
+        }
+      })
+      .catch(err => console.error('Error fetching user info:', err));
+
     // Load all records
     fetch('/api/all')
       .then(res => res.json())
@@ -95,12 +122,17 @@
           });
 
           const actionTd = document.createElement('td');
-          actionTd.innerHTML = `
-            <button class="btn btn-sm btn-success me-1" onclick='openEdit(${JSON.stringify(row)})'>Edit</button>
-            <form method="POST" action="/delete/${row.id}" style="display:inline">
-              <button class="btn btn-sm btn-danger" onclick="return confirm("Delete this record?")'>Delete</button>
-            </form>
-          `;
+          // Show edit/delete buttons only for Editor and Admin
+          if (userRole === 'Editor' || userRole === 'Admin') {
+            actionTd.innerHTML = `
+              <button class="btn btn-sm btn-success me-1" onclick='openEdit(${JSON.stringify(row)})'>Edit</button>
+              <form method="POST" action="/delete/${row.id}" style="display:inline">
+                <button class="btn btn-sm btn-danger" onclick="return confirm('Delete this record?')">Delete</button>
+              </form>
+            `;
+          } else {
+            actionTd.innerHTML = '<span class="text-muted">View Only</span>';
+          }
           tr.appendChild(actionTd);
           table.appendChild(tr);
         });

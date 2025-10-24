@@ -5,6 +5,9 @@ const xlsx = require('xlsx');
 const path = require('path');
 const fs = require('fs');
 const PDFDocument = require('pdfkit');
+const bcrypt = require('bcryptjs');
+const session = require('express-session');
+const pgSession = require('connect-pg-simple')(session);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -19,7 +22,19 @@ app.use(express.static('public'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Create table if not exists
+// Session middleware
+app.use(session({
+  store: new pgSession({
+    pool: pool,
+    tableName: 'session'
+  }),
+  secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { maxAge: 24 * 60 * 60 * 1000 } // 24 hours
+}));
+
+// Create tables if not exists
 pool.query(`
   CREATE TABLE IF NOT EXISTS entries (
     id SERIAL PRIMARY KEY,
@@ -34,14 +49,108 @@ pool.query(`
   )
 `);
 
-// Routes
-app.get('/', (req, res) => res.sendFile(__dirname + '/views/index.html'));
-app.get('/filter', (req, res) => res.sendFile(__dirname + '/views/filter.html'));
-app.get('/dashboard', (req, res) => res.sendFile(__dirname + '/views/dashboard.html'));
-app.get('/all', (req, res) => res.sendFile(__dirname + '/views/all.html'));
+pool.query(`
+  CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    username TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    role TEXT NOT NULL CHECK (role IN ('Admin', 'Editor', 'Viewer')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )
+`);
 
-// Add new entry
-app.post('/add', async (req, res) => {
+pool.query(`
+  CREATE TABLE IF NOT EXISTS session (
+    sid varchar NOT NULL COLLATE "default",
+    sess json NOT NULL,
+    expire timestamp NOT NULL,
+    PRIMARY KEY (sid)
+  )
+`);
+
+// Middleware to check authentication
+const isAuthenticated = (req, res, next) => {
+  if (req.session.userId) {
+    next();
+  } else {
+    res.redirect('/login');
+  }
+};
+
+// Middleware to check role
+const hasRole = (roles) => {
+  return (req, res, next) => {
+    if (req.session.userId && roles.includes(req.session.role)) {
+      next();
+    } else {
+      res.status(403).send('Access Denied');
+    }
+  };
+};
+
+// Routes
+app.get('/login', (req, res) => {
+  if (req.session.userId) {
+    res.redirect('/');
+  } else {
+    res.sendFile(__dirname + '/views/login.html');
+  }
+});
+
+app.post('/login', async (req, res) => {
+  const { username, password } = req.body;
+  try {
+    const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+    if (result.rows.length === 0) {
+      return res.status(401).send('Invalid credentials');
+    }
+
+    const user = result.rows[0];
+    const isValidPassword = await bcrypt.compare(password, user.password);
+
+    if (!isValidPassword) {
+      return res.status(401).send('Invalid credentials');
+    }
+
+    req.session.userId = user.id;
+    req.session.username = user.username;
+    req.session.role = user.role;
+    res.redirect('/');
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
+  }
+});
+
+app.get('/logout', (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      return res.status(500).send('Logout failed');
+    }
+    res.redirect('/login');
+  });
+});
+
+// Get current user info
+app.get('/api/user-info', isAuthenticated, (req, res) => {
+  res.json({
+    userId: req.session.userId,
+    username: req.session.username,
+    role: req.session.role
+  });
+});
+
+app.get('/admin-dashboard', isAuthenticated, hasRole(['Admin']), (req, res) => {
+  res.sendFile(__dirname + '/views/admin-dashboard.html');
+});
+
+app.get('/', isAuthenticated, (req, res) => res.sendFile(__dirname + '/views/index.html'));
+app.get('/filter', isAuthenticated, (req, res) => res.sendFile(__dirname + '/views/filter.html'));
+app.get('/dashboard', isAuthenticated, (req, res) => res.sendFile(__dirname + '/views/dashboard.html'));
+app.get('/all', isAuthenticated, (req, res) => res.sendFile(__dirname + '/views/all.html'));
+
+// Add new entry (Editor and Admin only)
+app.post('/add', isAuthenticated, hasRole(['Editor', 'Admin']), async (req, res) => {
   const { customerName, address, city, productName, modelNo, kw, tankVolume, qty } = req.body;
   await pool.query(
     `INSERT INTO entries (customerName, address, city, productName, modelNo, kw, tankVolume, qty)
@@ -51,9 +160,9 @@ app.post('/add', async (req, res) => {
   res.redirect('/');
 });
 
-// Excel upload
+// Excel upload (Editor and Admin only)
 const upload = multer({ dest: 'uploads/' });
-app.post('/upload', upload.single('excel'), async (req, res) => {
+app.post('/upload', isAuthenticated, hasRole(['Editor', 'Admin']), upload.single('excel'), async (req, res) => {
   const workbook = xlsx.readFile(req.file.path);
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
   const rows = xlsx.utils.sheet_to_json(sheet);
@@ -69,34 +178,34 @@ app.post('/upload', upload.single('excel'), async (req, res) => {
   res.redirect('/');
 });
 
-// Filter API
-app.get('/api/filter', async (req, res) => {
+// Filter API (All authenticated users)
+app.get('/api/filter', isAuthenticated, async (req, res) => {
   const { column, value } = req.query;
   const result = await pool.query(`SELECT * FROM entries WHERE ${column} ILIKE $1`, [`%${value}%`]);
   res.json(result.rows);
 });
 
-// Dashboard API
-app.get('/api/stats', async (req, res) => {
+// Dashboard API (All authenticated users)
+app.get('/api/stats', isAuthenticated, async (req, res) => {
   const result = await pool.query(`SELECT city, SUM(qty) as totalQty FROM entries GROUP BY city`);
   res.json(result.rows);
 });
 
-// Add new column
-app.post('/add-column', async (req, res) => {
+// Add new column (Admin only)
+app.post('/add-column', isAuthenticated, hasRole(['Admin']), async (req, res) => {
   const { columnName } = req.body;
   await pool.query(`ALTER TABLE entries ADD COLUMN ${columnName} TEXT`);
   res.redirect('/dashboard');
 });
 
-// Get all records
-app.get('/api/all', async (req, res) => {
+// Get all records (All authenticated users)
+app.get('/api/all', isAuthenticated, async (req, res) => {
   const result = await pool.query(`SELECT * FROM entries`);
   res.json(result.rows);
 });
 
-// Edit record
-app.post('/edit/:id', async (req, res) => {
+// Edit record (Editor and Admin only)
+app.post('/edit/:id', isAuthenticated, hasRole(['Editor', 'Admin']), async (req, res) => {
   const { customerName, address, city, productName, modelNo, kw, tankVolume, qty } = req.body;
   await pool.query(
     `UPDATE entries SET customerName=$1, address=$2, city=$3, productName=$4, modelNo=$5, kw=$6, tankVolume=$7, qty=$8 WHERE id=$9`,
@@ -105,14 +214,88 @@ app.post('/edit/:id', async (req, res) => {
   res.redirect('/all');
 });
 
-// Delete record
-app.post('/delete/:id', async (req, res) => {
+// Delete record (Editor and Admin only)
+app.post('/delete/:id', isAuthenticated, hasRole(['Editor', 'Admin']), async (req, res) => {
   await pool.query(`DELETE FROM entries WHERE id=$1`, [req.params.id]);
   res.redirect('/all');
 });
 
+// Admin API routes
+app.get('/api/users', isAuthenticated, hasRole(['Admin']), async (req, res) => {
+  try {
+    const result = await pool.query('SELECT id, username, role, created_at FROM users ORDER BY created_at DESC');
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+app.post('/api/users/create', isAuthenticated, hasRole(['Admin']), async (req, res) => {
+  const { username, password, role } = req.body;
+  try {
+    // Check if admin already exists
+    if (role === 'Admin') {
+      const adminCheck = await pool.query("SELECT * FROM users WHERE role = 'Admin'");
+      if (adminCheck.rows.length > 0) {
+        return res.status(400).json({ error: 'Admin already exists' });
+      }
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    await pool.query(
+      'INSERT INTO users (username, password, role) VALUES ($1, $2, $3)',
+      [username, hashedPassword, role]
+    );
+    res.json({ success: true, message: 'User created successfully' });
+  } catch (err) {
+    console.error(err);
+    if (err.code === '23505') {
+      res.status(400).json({ error: 'Username already exists' });
+    } else {
+      res.status(500).json({ error: 'Failed to create user' });
+    }
+  }
+});
+
+app.post('/api/users/:id/role', isAuthenticated, hasRole(['Admin']), async (req, res) => {
+  const { role } = req.body;
+  const userId = req.params.id;
+  try {
+    // Check if trying to create another admin
+    if (role === 'Admin') {
+      const adminCheck = await pool.query("SELECT * FROM users WHERE role = 'Admin' AND id != $1", [userId]);
+      if (adminCheck.rows.length > 0) {
+        return res.status(400).json({ error: 'Admin already exists' });
+      }
+    }
+
+    await pool.query('UPDATE users SET role = $1 WHERE id = $2', [role, userId]);
+    res.json({ success: true, message: 'User role updated' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update user role' });
+  }
+});
+
+app.delete('/api/users/:id', isAuthenticated, hasRole(['Admin']), async (req, res) => {
+  const userId = req.params.id;
+  try {
+    // Prevent deleting the current admin
+    if (req.session.userId === parseInt(userId)) {
+      return res.status(400).json({ error: 'Cannot delete your own account' });
+    }
+
+    await pool.query('DELETE FROM users WHERE id = $1', [userId]);
+    res.json({ success: true, message: 'User deleted' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to delete user' });
+  }
+});
+
 // Download Excel template
-app.get('/download-template', (req, res) => {
+app.get('/download-template', isAuthenticated, (req, res) => {
   const wb = xlsx.utils.book_new();
   const ws = xlsx.utils.aoa_to_sheet([["Customer Name", "Address", "City", "Product Name", "Model No", "KW", "Tank Volume", "Qty"]]);
   xlsx.utils.book_append_sheet(wb, ws, "Template");
@@ -122,7 +305,7 @@ app.get('/download-template', (req, res) => {
 });
 
 // Export all to Excel
-app.get('/export-excel', async (req, res) => {
+app.get('/export-excel', isAuthenticated, async (req, res) => {
   const result = await pool.query(`SELECT * FROM entries`);
   const ws = xlsx.utils.json_to_sheet(result.rows);
   const wb = xlsx.utils.book_new();
@@ -133,7 +316,7 @@ app.get('/export-excel', async (req, res) => {
 });
 
 // Export to PDF (supports filtering)
-app.get('/export-pdf', async (req, res) => {
+app.get('/export-pdf', isAuthenticated, async (req, res) => {
   const { column, value } = req.query;
   let query = 'SELECT * FROM entries';
   let params = [];
