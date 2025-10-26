@@ -164,34 +164,41 @@
 
     // Submit edit form
     document.getElementById('editForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const formData = new FormData(this);
-    
-    // Validate required fields
-    for (let pair of formData.entries()) {
-      if (!pair[1] && pair[0] !== 'id') {
-        alert('Please fill in all required fields');
-        return;
-      }
-    }
-    
-    const id = document.getElementById('editId').value;
-    fetch(`/edit/${id}`, {
-      method: 'POST',
-      body: new URLSearchParams(formData)
-    })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error('Network response was not ok');
-      }
-      return response;
-    })
-    .then(() => location.reload())
-    .catch(error => {
-      console.error('Error:', error);
-      alert('Failed to update record. Please try again.');
-    });
+  e.preventDefault();
+  const formData = new FormData(this);
+  const id = document.getElementById('editId').value;
+
+  // Create object with correct field names
+  const data = {
+    customername: formData.get('customername'),
+    address: formData.get('address'),
+    city: formData.get('city'),
+    productname: formData.get('productname'),
+    modelno: formData.get('modelno'),
+    kw: formData.get('kw'),
+    tankvolume: formData.get('tankvolume'),
+    qty: formData.get('qty')
+  };
+
+  fetch(`/edit/${id}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data)
+  })
+  .then(response => {
+    if (!response.ok) throw new Error('Update failed');
+    return response.json();
+  })
+  .then(() => {
+    location.reload();
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Failed to update record. Please try again.');
   });
+});
   </script>
 </body>
 </html>
