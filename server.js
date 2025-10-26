@@ -63,17 +63,18 @@ app.use(express.json());
 
 // Session middleware - use memory store for reliability
 app.use(session({
-  store: new SimpleMemoryStore(),
-  secret: process.env.SESSION_SECRET || 'change-this-secret-in-production',
-  resave: false,
-  saveUninitialized: false, // Changed from true to false
-  cookie: { 
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-    httpOnly: true,
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined
-  }
+    secret: process.env.SESSION_SECRET || 'change-this-secret-in-production',
+    name: 'sessionId',
+    resave: true,
+    saveUninitialized: false,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined,
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    },
+    store: new SimpleMemoryStore()
 }));
 
 // Create tables if not exists
@@ -145,21 +146,22 @@ async function ensureAdminExists() {
 // Call ensureAdminExists after a short delay to ensure tables are created
 setTimeout(ensureAdminExists, 1000);
 
-// Update the isAuthenticated middleware
+// Update the authentication middleware
 const isAuthenticated = (req, res, next) => {
-  console.log('🔍 Auth check:', {
-    sessionID: req.sessionID,
-    userId: req.session?.userId,
-    username: req.session?.username,
-    role: req.session?.role
-  });
+    console.log('🔍 Full session data:', req.session);
+    
+    if (!req.session || !req.session.userId) {
+        console.log('❌ No valid session found');
+        return res.redirect('/');
+    }
 
-  if (req.session && req.session.userId) {
-    return next();
-  }
-  
-  console.log('❌ Not authenticated, redirecting to login');
-  res.redirect('/');
+    console.log('✅ Valid session found:', {
+        userId: req.session.userId,
+        username: req.session.username,
+        role: req.session.role
+    });
+    
+    next();
 };
 
 // Middleware to check role
@@ -192,53 +194,53 @@ app.get('/login', (req, res) => {
   }
 });
 
+// Update the login route
 app.post('/login', async (req, res) => {
-  const { username, password } = req.body;
-  try {
-    console.log(`🔐 Login attempt for user: ${username}`);
-    const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
-    
-    if (result.rows.length === 0) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    const user = result.rows[0];
-    const isValidPassword = await bcrypt.compare(password, user.password);
-
-    if (!isValidPassword) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    // Set session data
-    req.session.regenerate((err) => {
-      if (err) {
-        console.error('Session regeneration error:', err);
-        return res.status(500).json({ error: 'Session error' });
-      }
-
-      req.session.userId = user.id;
-      req.session.username = user.username;
-      req.session.role = user.role;
-
-      req.session.save((err) => {
-        if (err) {
-          console.error('Session save error:', err);
-          return res.status(500).json({ error: 'Session error' });
+    const { username, password } = req.body;
+    try {
+        console.log(`🔐 Login attempt for user: ${username}`);
+        const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+        
+        if (result.rows.length === 0) {
+            return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        console.log('Session saved successfully:', req.session);
-        res.json({
-          success: true,
-          redirect: user.role === 'Admin' ? '/admin-dashboard' : '/home',
-          role: user.role
-        });
-      });
-    });
+        const user = result.rows[0];
+        const isValidPassword = await bcrypt.compare(password, user.password);
 
-  } catch (err) {
-    console.error('Login error:', err);
-    res.status(500).json({ error: 'Server error' });
-  }
+        if (!isValidPassword) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        // Set session data
+        req.session.userId = user.id;
+        req.session.username = user.username;
+        req.session.role = user.role;
+
+        // Force session save
+        await new Promise((resolve, reject) => {
+            req.session.save(err => {
+                if (err) {
+                    console.error('Session save error:', err);
+                    reject(err);
+                } else {
+                    resolve();
+                }
+            });
+        });
+
+        console.log('Session data set:', req.session);
+
+        res.json({
+            success: true,
+            redirect: user.role === 'Admin' ? '/admin-dashboard' : '/home',
+            role: user.role
+        });
+
+    } catch (err) {
+        console.error('Login error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
 });
 
 app.get('/logout', (req, res) => {

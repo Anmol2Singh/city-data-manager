@@ -127,48 +127,31 @@
       e.preventDefault();
       const username = document.getElementById('username').value;
       const password = document.getElementById('password').value;
-      const errorAlert = document.getElementById('errorAlert');
-      const loginBtn = e.target.querySelector('button[type="submit"]');
 
       try {
-        console.log('🔐 Attempting login for:', username);
-        loginBtn.disabled = true;
-        loginBtn.textContent = 'Logging in...';
-        
         const response = await fetch('/login', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({ username, password }),
-          credentials: 'include'
+          credentials: 'include' // Important for session cookies
         });
 
         const data = await response.json();
 
-        if (response.ok) {
-          console.log('✅ Login successful:', data);
-          
-          if (data.redirect) {
-            console.log(`🔄 Redirecting to ${data.redirect}`);
-            window.location.href = data.redirect;
-          } else {
-            console.log('🔄 Fallback redirect to /home');
-            window.location.href = '/home';
-          }
+        if (data.success) {
+          window.location.href = data.redirect;
         } else {
-          console.log('❌ Login failed:', data.error);
-          errorAlert.textContent = data.error || 'Invalid credentials';
+          const errorAlert = document.getElementById('errorAlert');
+          errorAlert.textContent = data.error;
           errorAlert.style.display = 'block';
-          loginBtn.disabled = false;
-          loginBtn.textContent = 'Login';
         }
       } catch (error) {
-        console.error('❌ Error:', error);
-        errorAlert.textContent = 'An error occurred. Please try again.';
+        console.error('Login error:', error);
+        const errorAlert = document.getElementById('errorAlert');
+        errorAlert.textContent = 'An error occurred during login';
         errorAlert.style.display = 'block';
-        loginBtn.disabled = false;
-        loginBtn.textContent = 'Login';
       }
     });
   </script>
