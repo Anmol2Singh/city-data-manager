@@ -66,12 +66,12 @@ app.use(session({
   store: new SimpleMemoryStore(),
   secret: process.env.SESSION_SECRET || 'change-this-secret-in-production',
   resave: false,
-  saveUninitialized: true,
+  saveUninitialized: false, // Changed from true to false
   cookie: { 
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     secure: process.env.NODE_ENV === 'production', // HTTPS only in production
     httpOnly: true,
-    sameSite: 'none',  // Allow cross-site
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined
   }
 }));
@@ -145,22 +145,21 @@ async function ensureAdminExists() {
 // Call ensureAdminExists after a short delay to ensure tables are created
 setTimeout(ensureAdminExists, 1000);
 
-// Middleware to check authentication
+// Update the isAuthenticated middleware
 const isAuthenticated = (req, res, next) => {
-  console.log(`🔍 Auth check for ${req.path}`);
-  console.log(`   Session ID: ${req.sessionID}`);
-  console.log(`   Session object:`, req.session);
-  console.log(`   User ID: ${req.session.userId}`);
-  console.log(`   Username: ${req.session.username}`);
-  console.log(`   All cookies:`, req.headers.cookie);
-  
-  if (req.session.userId) {
-    console.log(`✅ Authenticated: ${req.session.username}`);
-    next();
-  } else {
-    console.log(`❌ Not authenticated, redirecting to login`);
-    res.redirect('/login');
+  console.log('🔍 Auth check:', {
+    sessionID: req.sessionID,
+    userId: req.session?.userId,
+    username: req.session?.username,
+    role: req.session?.role
+  });
+
+  if (req.session && req.session.userId) {
+    return next();
   }
+  
+  console.log('❌ Not authenticated, redirecting to login');
+  res.redirect('/');
 };
 
 // Middleware to check role
@@ -198,49 +197,46 @@ app.post('/login', async (req, res) => {
   try {
     console.log(`🔐 Login attempt for user: ${username}`);
     const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+    
     if (result.rows.length === 0) {
-      console.log(`❌ User not found: ${username}`);
-      return res.status(401).send('Invalid credentials');
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     const user = result.rows[0];
-    console.log(`✅ User found: ${username}, Role: ${user.role}`);
     const isValidPassword = await bcrypt.compare(password, user.password);
 
     if (!isValidPassword) {
-      console.log(`❌ Invalid password for user: ${username}`);
-      return res.status(401).send('Invalid credentials');
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    req.session.userId = user.id;
-    req.session.username = user.username;
-    req.session.role = user.role;
-    
-    console.log(`✅ Session set for user: ${username}, Role: ${user.role}`);
-    console.log(`📝 Session ID: ${req.sessionID}`);
-    
-    // Save session before responding
-    req.session.save((err) => {
+    // Set session data
+    req.session.regenerate((err) => {
       if (err) {
-        console.error('❌ Session save error:', err);
-        return res.status(500).json({ error: 'Session save failed' });
+        console.error('Session regeneration error:', err);
+        return res.status(500).json({ error: 'Session error' });
       }
-      console.log(`✅ Login successful for user: ${username}`);
-      console.log(`📝 Session saved with ID: ${req.sessionID}`);
-      console.log(`📝 Session data:`, {
-        userId: req.session.userId,
-        username: req.session.username,
-        role: req.session.role
+
+      req.session.userId = user.id;
+      req.session.username = user.username;
+      req.session.role = user.role;
+
+      req.session.save((err) => {
+        if (err) {
+          console.error('Session save error:', err);
+          return res.status(500).json({ error: 'Session error' });
+        }
+
+        console.log('Session saved successfully:', req.session);
+        res.json({
+          success: true,
+          redirect: user.role === 'Admin' ? '/admin-dashboard' : '/home',
+          role: user.role
+        });
       });
-      console.log(`📝 Session cookie:`, req.session.cookie);
-      
-      // Send response with proper headers
-      res.setHeader('Content-Type', 'application/json');
-      const redirectPath = user.role === 'Admin' ? '/admin-dashboard' : '/home';
-      res.status(200).json({ success: true, message: 'Login successful', redirect: redirectPath });
     });
+
   } catch (err) {
-    console.error('❌ Login error:', err);
+    console.error('Login error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -263,8 +259,19 @@ app.get('/api/user-info', isAuthenticated, (req, res) => {
   });
 });
 
-app.get('/admin-dashboard', isAuthenticated, hasRole(['Admin']), (req, res) => {
-  res.sendFile(__dirname + '/views/admin-dashboard.html');
+// Add this route to handle direct admin-dashboard access
+app.get('/admin-dashboard', isAuthenticated, (req, res) => {
+  console.log('👤 Accessing admin dashboard:', {
+    role: req.session.role,
+    username: req.session.username
+  });
+
+  if (req.session.role !== 'Admin') {
+    console.log('❌ Non-admin access attempt, redirecting');
+    return res.redirect('/home');
+  }
+
+  res.sendFile(path.join(__dirname, 'views', 'admin-dashboard.html'));
 });
 
 // Home page - authenticated users only

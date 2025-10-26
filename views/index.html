@@ -138,49 +138,27 @@
         const response = await fetch('/login', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Type': 'application/json',
           },
-          body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`,
+          body: JSON.stringify({ username, password }),
           credentials: 'include'
         });
 
-        console.log('Response status:', response.status);
-        console.log('Response ok:', response.ok);
+        const data = await response.json();
 
         if (response.ok) {
-          try {
-            const data = await response.json();
-            console.log('✅ Login successful:', data);
-            
-            // Fetch user info to determine redirect
-            // const userInfoResponse = await fetch('/api/user-info', { credentials: 'include' });
-            // const userInfo = await userInfoResponse.json();
-            // console.log('User info:', userInfo);
-            
-            // // Redirect based on role
-            // let redirectUrl = '/home';
-            // if (userInfo.role === 'Admin') {
-            //   redirectUrl = '/admin-dashboard';
-            //   console.log('🔄 Admin detected, redirecting to admin dashboard...');
-            // } else {
-            //   console.log('🔄 Regular user detected, redirecting to home page...');
-            // }
-            
+          console.log('✅ Login successful:', data);
+          
+          if (data.redirect) {
+            console.log(`🔄 Redirecting to ${data.redirect}`);
             window.location.href = data.redirect;
-            
-            // Fallback redirect after 1 second
-            setTimeout(() => {
-              console.log('🔄 Fallback redirect to ' + redirectUrl);
-              window.location.href = redirectUrl;
-            }, 1000);
-          } catch (e) {
-            console.log('Response received but not JSON');
+          } else {
+            console.log('🔄 Fallback redirect to /home');
             window.location.href = '/home';
           }
         } else {
-          const text = await response.text();
-          console.log('❌ Login failed:', text);
-          errorAlert.textContent = text || 'Invalid credentials';
+          console.log('❌ Login failed:', data.error);
+          errorAlert.textContent = data.error || 'Invalid credentials';
           errorAlert.style.display = 'block';
           loginBtn.disabled = false;
           loginBtn.textContent = 'Login';
