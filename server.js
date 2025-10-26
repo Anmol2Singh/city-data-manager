@@ -236,7 +236,8 @@ app.post('/login', async (req, res) => {
       
       // Send response with proper headers
       res.setHeader('Content-Type', 'application/json');
-      res.status(200).json({ success: true, message: 'Login successful', redirect: '/home' });
+      const redirectPath = user.role === 'Admin' ? '/admin-dashboard' : '/home';
+      res.status(200).json({ success: true, message: 'Login successful', redirect: redirectPath });
     });
   } catch (err) {
     console.error('❌ Login error:', err);
