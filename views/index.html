@@ -153,20 +153,20 @@
             console.log('✅ Login successful:', data);
             
             // Fetch user info to determine redirect
-            const userInfoResponse = await fetch('/api/user-info', { credentials: 'include' });
-            const userInfo = await userInfoResponse.json();
-            console.log('User info:', userInfo);
+            // const userInfoResponse = await fetch('/api/user-info', { credentials: 'include' });
+            // const userInfo = await userInfoResponse.json();
+            // console.log('User info:', userInfo);
             
-            // Redirect based on role
-            let redirectUrl = '/home';
-            if (userInfo.role === 'Admin') {
-              redirectUrl = '/admin-dashboard';
-              console.log('🔄 Admin detected, redirecting to admin dashboard...');
-            } else {
-              console.log('🔄 Regular user detected, redirecting to home page...');
-            }
+            // // Redirect based on role
+            // let redirectUrl = '/home';
+            // if (userInfo.role === 'Admin') {
+            //   redirectUrl = '/admin-dashboard';
+            //   console.log('🔄 Admin detected, redirecting to admin dashboard...');
+            // } else {
+            //   console.log('🔄 Regular user detected, redirecting to home page...');
+            // }
             
-            window.location.href = redirectUrl;
+            window.location.href = data.redirect;
             
             // Fallback redirect after 1 second
             setTimeout(() => {
